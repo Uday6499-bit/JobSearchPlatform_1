@@ -1,0 +1,207 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Job Search Platform</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 20px; }
+        h1 { text-align: center; margin-bottom: 30px; }
+        .module { margin: 30px 0; }
+        .job-listing, .profile-info, .resume-view, .notification { margin: 15px 0; padding: 10px; border: 1px solid #ddd; }
+        input, button { margin: 10px 0; padding: 8px; width: 250px; }
+        button { cursor: pointer; }
+        #job-listings, #notifications-list { margin-top: 20px; }
+    </style>
+</head>
+<body>
+
+<h1>Job Search Platform</h1>
+
+<!-- Job Listings Module -->
+<div class="module">
+    <h2>Job Listings</h2>
+    <input type="text" id="job-title" placeholder="Search by title">
+    <input type="text" id="company" placeholder="Company">
+    <input type="text" id="location" placeholder="Location">
+    <input type="text" id="category" placeholder="Category">
+    <button onclick="searchJobs()">Search Jobs</button>
+
+    <div id="job-listings"></div>
+</div>
+
+<!-- User Profile Module -->
+<div class="module">
+    <h2>User Profile</h2>
+    <div id="profile-info" class="profile-info">
+        <h3>Profile Details</h3>
+        <p id="profile-name">Loading...</p>
+        <p id="profile-skills">Loading...</p>
+        <p id="profile-experience">Loading...</p>
+    </div>
+    <h3>Update Profile</h3>
+    <input type="text" id="profile-name-input" placeholder="Name">
+    <input type="text" id="profile-skills-input" placeholder="Skills">
+    <input type="text" id="profile-experience-input" placeholder="Experience">
+    <button onclick="updateProfile()">Update Profile</button>
+</div>
+
+<!-- Resume Builder Module -->
+<div class="module">
+    <h2>Resume Builder</h2>
+    <input type="text" id="resume-skills" placeholder="Skills">
+    <input type="text" id="resume-experience" placeholder="Experience">
+    <button onclick="createOrUpdateResume()">Save Resume</button>
+
+    <div id="resume-view" class="resume-view">
+        <h3>Your Resume</h3>
+        <p id="resume-skills-view">Loading...</p>
+        <p id="resume-experience-view">Loading...</p>
+    </div>
+</div>
+
+<!-- Notifications Module -->
+<div class="module">
+    <h2>Notifications</h2>
+    <div id="notifications-list"></div>
+</div>
+
+<script>
+    // Fetch Jobs
+    function searchJobs() {
+        const title = document.getElementById('job-title').value;
+        const company = document.getElementById('company').value;
+        const location = document.getElementById('location').value;
+        const category = document.getElementById('category').value;
+
+        fetch(`/api/jobs/search?title=${title}&company=${company}&location=${location}&category=${category}`)
+            .then(response => response.json())
+            .then(data => displayJobListings(data));
+    }
+
+    // Display Job Listings
+    function displayJobListings(jobs) {
+        const jobListingsDiv = document.getElementById('job-listings');
+        jobListingsDiv.innerHTML = '';  // Clear previous results
+
+        jobs.forEach(job => {
+            const jobDiv = document.createElement('div');
+            jobDiv.classList.add('job-listing');
+            jobDiv.innerHTML = `
+                <h3>${job.title}</h3>
+                <p>${job.company} | ${job.location}</p>
+                <p>${job.description}</p>
+                <button onclick="applyForJob(${job.id})">Apply</button>
+            `;
+            jobListingsDiv.appendChild(jobDiv);
+        });
+    }
+
+    // Apply for a job
+    function applyForJob(jobId) {
+        fetch(`/api/job-applications`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ jobId: jobId, profileId: 1 })
+        })
+        .then(response => response.json())
+        .then(data => alert('Applied successfully!'));
+    }
+
+    // Load User Profile
+    function loadProfile() {
+        const profileId = 1;
+        fetch(`/api/profiles/${profileId}`)
+            .then(response => response.json())
+            .then(profile => {
+                document.getElementById('profile-name').innerText = `Name: ${profile.name}`;
+                document.getElementById('profile-skills').innerText = `Skills: ${profile.skills}`;
+                document.getElementById('profile-experience').innerText = `Experience: ${profile.experience}`;
+            });
+    }
+
+    // Update Profile
+    function updateProfile() {
+        const profileId = 1;
+        const name = document.getElementById('profile-name-input').value;
+        const skills = document.getElementById('profile-skills-input').value;
+        const experience = document.getElementById('profile-experience-input').value;
+
+        fetch(`/api/profiles/${profileId}`, {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ name, skills, experience })
+        })
+        .then(response => response.json())
+        .then(data => alert('Profile updated successfully!'));
+    }
+
+    // Load Resume
+    function loadResume() {
+        const profileId = 1;
+        fetch(`/api/resumes/${profileId}`)
+            .then(response => response.json())
+            .then(resume => {
+                document.getElementById('resume-skills-view').innerText = `Skills: ${resume.skills}`;
+                document.getElementById('resume-experience-view').innerText = `Experience: ${resume.experience}`;
+            });
+    }
+
+    // Create or Update Resume
+    function createOrUpdateResume() {
+        const profileId = 1;
+        const skills = document.getElementById('resume-skills').value;
+        const experience = document.getElementById('resume-experience').value;
+
+        fetch(`/api/resumes`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ profileId, skills, experience })
+        })
+        .then(response => response.json())
+        .then(data => alert('Resume saved successfully!'));
+    }
+
+    // Load Notifications
+    function loadNotifications() {
+        const profileId = 1;
+        fetch(`/api/notifications/${profileId}`)
+            .then(response => response.json())
+            .then(notifications => {
+                const notificationsList = document.getElementById('notifications-list');
+                notificationsList.innerHTML = '';  // Clear previous notifications
+
+                notifications.forEach(notification => {
+                    const notificationDiv = document.createElement('div');
+                    notificationDiv.classList.add('notification');
+                    notificationDiv.innerHTML = `
+                        <p>${notification.message}</p>
+                        <button onclick="markAsRead(${notification.id})">Mark as Read</button>
+                    `;
+                    notificationsList.appendChild(notificationDiv);
+                });
+            });
+    }
+
+    // Mark Notification as Read
+    function markAsRead(notificationId) {
+        fetch(`/api/notifications/${notificationId}/read`, {
+            method: 'PUT'
+        })
+        .then(response => {
+            if (response.status === 204) {
+                alert('Notification marked as read');
+                loadNotifications(); // Reload notifications
+            }
+        });
+    }
+
+    // Initial Load
+    loadProfile();
+    loadResume();
+    loadNotifications();
+
+</script>
+
+</body>
+</html>
